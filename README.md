@@ -2,6 +2,17 @@
 
 A quick guide on how to do common tasks with the [BGFX](https://github.com/bkaradzic/bgfx) rendering library
 
+## Contents
+
+- [How do I initialize BGFX with GLFW?](#how-do-i-initialize-bgfx-with-glfw)
+- [How do I render debug text?](#how-do-i-render-debug-text)
+- [How do I clean up BGFX?](#how-do-i-clean-up-bgfx)
+- [How do I render static geometry?](#how-do-i-render-static-geometry)
+- [How do I render dynamic geometry?](#how-do-i-render-dynamic-geometry)
+- [How do I set uniforms?](#how-do-i-set-uniforms)
+- [How do I use textures?](#how-do-i-use-textures)
+- [How do I use an MVP matrix?](#how-do-i-use-an-mvp-matrix)
+
 ## How do I initialize BGFX with GLFW?
 
 ```cpp
@@ -44,7 +55,14 @@ bgfx::setViewClear(
     0);
 ```
 
+If using a different window library like SDL, the process doesn't differ too much.
+- `bgfx_init.platformData.nwh` should be the native handle to the window
+- `bgfx_init.platformData.ndt` should be the native display of the windowing system
+
 ## How do I render debug text?
+
+This is useful for displaying information to the screen even without creating your own buffers and shaders.
+
 ```cpp
 ...
 // Straight after bgfx::init() is called
@@ -77,12 +95,15 @@ glfwTerminate();
 
 ## How do I render static geometry?
 
+Time to render something on the screen!
+
 ### Data
 ```cpp
 const float vertices[] = {
+    // Position         // Color
     -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f,
-    0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f,
-    0.0f, 0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f,
+    0.5f, -0.5f, 0.0f,  0.0f, 1.0f, 0.0f, 1.0f,
+    0.0f, 0.5f, 0.0f,   1.0f, 0.0f, 0.0f, 1.0f,
 };
 
 const unsigned int indices[] = {
@@ -151,13 +172,37 @@ vec4 a_color0 : COLOR0;
 ```
 
 ### Shader compilation
+
+Since BGFX is cross-platform and uses many different graphics APIs, it requires a custom shading language that can be compiled to different formats. To which format it is compiled to is declared using `-p`.
+
+Here's a list of available formats:
+- `spirv` for Vulkan
+- `NNN` for OpenGL where `N` is a placeholder for the GLSL version
+- `NNN_es` for OpenGL ES where `N` is a placeholder for the GLESSL version
+- `s_N_N` for HLSL (Direct3D) where `N` is a placeholder for the HLSL version
+- `metal` for Metal
+- `PSSL` for PSGL
+
+BGFX shaders are also compiled differently on different platforms. Which platform to compile for is declared using `--platform`
+
+Here's a list of available platforms:
+- `android`
+- `asm.js`
+- `ios`
+- `linux`
+- `osx`
+- `orbis`
+- `windows`
+
+When building BGFX, a tool called `shaderc` is built. It is used to compile the shaders:
+
 ```sh
 ./your/path/to/shaderc \
     --type vertex \
     -i path/to/bgfx/src/ \
-    --platform linux \
+    --platform <YOUR PLATFORM> \
     --varyingdef varying.def.sc \
-    -p spirv \
+    -p <YOUR FORMAT> \
     --verbose \
     -f vs_helloworld.sc \
     -o vs_helloworld.bin
@@ -165,9 +210,9 @@ vec4 a_color0 : COLOR0;
 ./your/path/to/shaderc \
     --type fragment \
     -i path/to/bgfx/src/ \
-    --platform linux \
+    --platform <YOUR PLATFORM> \
     --varyingdef varying.def.sc \
-    -p spirv \
+    -p <YOUR FORMAT> \
     --verbose \
     -f fs_helloworld.sc \
     -o fs_helloworld.bin
@@ -245,7 +290,37 @@ bgfx::destroy(program);
 
 Phew, that was a lot of work!
 
+## How do I render dynamic geometry?
+
+### Vertex Buffer
+```cpp
+bgfx::DynamicVertexBufferHandle vbh = bgfx::createDynamicVertexBuffer(
+    (uint32_t) 0,
+    vertex_layout,
+    BGFX_BUFFER_ALLOW_RESIZE);
+```
+
+### Index Buffer
+```cpp
+bgfx::DynamicIndexBufferHandle ibh = bgfx::createDynamicIndexBuffer(
+    (uint32_t) 0,
+    BGFX_BUFFER_ALLOW_RESIZE,
+    | BGFX_BUFFER_INDEX32);
+```
+
+### Setting Data
+
+Do this when your data has changed (or when setting data for the first time)
+
+```cpp
+bgfx::update(vbh, 0, bgfx::copy(vertices, sizeof(vertices)));
+bgfx::update(ibh, 0, bgfx::copy(indices, sizeof(indices)))
+```
+**Note: as we have set the** `BGFX_BUFFER_INDEX32` **flag, indices have to be 32 bit integers.**
+
 ## How do I set uniforms?
+
+In BGFX you declare a uniform in the shader but you also have to create a `bgfx::UniformHandle` to upload it in your code.
 
 ### Fragment Shader
 
@@ -328,10 +403,11 @@ vec2 a_texcoord0 : TEXCOORD0;
 
 ```cpp
 const float vertices[] = {
+    // Position         // UV
     -0.5f, -0.5f, 0.0f, 0.0f, 0.0f,
-    0.5f, -0.5f, 0.0f, 1.0f, 0.0f,
-    0.5f, 0.5f, 0.0f, 1.0f, 1.0f,
-    -0.5f, 0.0f, 0.0f, 0.0f, 1.0f,
+    0.5f, -0.5f, 0.0f,  1.0f, 0.0f,
+    0.5f, 0.5f, 0.0f,   1.0f, 1.0f,
+    -0.5f, 0.0f, 0.0f,  0.0f, 1.0f,
 };
 
 const unsigned int indices[] = {
@@ -346,9 +422,9 @@ const unsigned int indices[] = {
 bgfx::VertexLayout vertex_layout;
 vertex_layout.begin()
     .add(
-        bgfx::Attrib::Position, // Role
-        3, // Size
-        bgfx::AttribType::Float) // Type
+        bgfx::Attrib::Position,
+        3,
+        bgfx::AttribType::Float)
     .add(
         bgfx::Attrib::TexCoord0,
         2,
@@ -357,6 +433,8 @@ vertex_layout.begin()
 ```
 
 ### Loading a PNG image with [STB Image](https://github.com/nothings/stb/blob/master/stb_image.h)
+
+STB image is a great single-header library to use for loading images. Any other way will do, however, as BGFX only cares about the data passed, not the way in which it is obtained.
 
 ```cpp
 #include <tuple>
@@ -370,7 +448,7 @@ std::tuple<glm::ivec2, bgfx::TextureHandle> load_texture(std::string path) {
     
     stbi_set_flip_vertically_on_load(true);
 
-    stbi_uc *data = stbi_load(path.c_str(), &size.x, &size.y, &channels, 4);
+    unsigned char *data = stbi_load(path.c_str(), &size.x, &size.y, &channels, 4);
 
     auto res =
 	bgfx::createTexture2D(
@@ -411,6 +489,8 @@ bgfx::TextureHandle texture = std::get<1>(tuple);
 ```
 
 ### Rendering
+
+Samplers are uploaded in a slightly different way.
 
 ```cpp
 ...
