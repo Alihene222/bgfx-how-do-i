@@ -422,3 +422,10 @@ while(!glfwWindowShouldClose(window)) {
     ...
 }
 ```
+
+### Cleanup
+
+```cpp
+bgfx::destroy(texture); // Loaded texture
+bgfx::destroy(s_tex); // Sampler
+```
