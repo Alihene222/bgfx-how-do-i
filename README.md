@@ -12,6 +12,8 @@ A quick guide on how to do common tasks with the [BGFX](https://github.com/bkara
 - [How do I set uniforms?](#how-do-i-set-uniforms)
 - [How do I use textures?](#how-do-i-use-textures)
 - [How do I use an MVP matrix?](#how-do-i-use-an-mvp-matrix)
+- [How do I create custom framebuffers?](#how-do-i-create-custom-framebuffers)
+- [Additional Resources](#additional-resources)
 
 ## How do I initialize BGFX with GLFW?
 
@@ -537,3 +539,72 @@ void main() {
     ...
 }
 ```
+
+## How do I create custom framebuffers?
+
+Framebuffers are a vital part of graphics programming. Their creation in BGFX is very straightforward.
+
+However, before we jump into the code, it is important to know how BGFX views work. So far, all our rendering operations have been to the default view - view `0`. When we create a custom framebuffer, we need to assign it to a view ID. In our case, our framebuffer will be assigned to view `1`.
+
+### View ID
+
+```cpp
+...
+const bgfx::ViewId fb_view = 1; // Main view is 0
+...
+bgfx::setViewRect(fb_view, 0, 0, width, height);
+bgfx::setViewClear(
+    fb_view,
+    BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH,
+    0x000000FF,
+    1.0f,
+    0);
+...
+```
+
+To render to this view, you will need to specify `fb_view` instead of 0. For example: `bgfx::submit(fb_view, program)` or `bgfx::touch(fb_view)`.
+
+### Destination Texture
+
+```cpp
+bgfx::TextureHandle fb_texture = bgfx::createTexture2D(
+    width, height, false, 1,
+    BGFX_TEXTURE_RT
+    | BGFX_SAMPLER_MIN_POINT
+    | BGFX_SAMPLER_MAG_POINT
+    | BGFX_SAMPLER_MIP_POINT
+    | BGFX_SAMPLER_U_CLAMP
+    | BGFX_SAMPLER_V_CLAMP,
+    bgfx::TextureFormat::BGRA8);
+```
+
+### Attachment(s)
+
+```cpp
+bgfx::Attachment attachment;
+attachment.init(fb_texture);
+```
+
+### Framebuffer
+
+```cpp
+bgfx::FrameBuffer framebuffer = bgfx::createFrameBuffer(
+    1, &attachment); // Can be multiple attachments
+bgfx::setViewFrameBuffer(fb_view, framebuffer); // Anything rendered to view 1 will be rendered to this framebuffer
+```
+
+### Cleanup
+
+```cpp
+bgfx::destroy(fb_texture);
+bgfx::destroy(framebuffer);
+```
+
+## Additional Resources
+
+These are resources that I used myself to learn graphics programming and BGFX. They may be of use as well.
+- [BGFX Examples](https://bkaradzic.github.io/bgfx/examples.html)
+- [minecraft-again](https://github.com/jdah/minecraft-again) A minecraft clone made by JDH using BGFX
+- [Hello, BGFX](https://dev.to/pperon/hello-bgfx-4dka)
+- [Using the BGFX library with C++ on Ubuntu](https://www.sandeepnambiar.com/getting-started-with-bgfx/)
+- [LearnOpenGL](https://learnopengl.com/) For graphics concepts and useful OpenGL knowledge
