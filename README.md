@@ -429,3 +429,31 @@ while(!glfwWindowShouldClose(window)) {
 bgfx::destroy(texture); // Loaded texture
 bgfx::destroy(s_tex); // Sampler
 ```
+
+## How do I use an MVP matrix?
+
+BGFX has some built-in uniforms, and the MVP matrix (or certain parts of it) just happen to be included.
+
+They are as follows:
+- `u_model`
+- `u_view`
+- `u_proj`
+- `u_modelView`
+- `u_viewProj`
+- `u_modelViewProj`
+
+To set these values:
+- `bgfx::setTransform` for the model matrix
+- `bgfx::setViewTransform` for the view and projection matrices
+
+### Vertex Shader
+
+```
+...
+#include <bgfx_shader.sh>
+
+void main() {
+    gl_Position = mul(u_modelViewProj, vec4(a_position, 1.0));
+    ...
+}
+```
