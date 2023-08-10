@@ -27,9 +27,7 @@ int width = 640;
 int height = 640;
 
 bgfx::Init bgfx_init;
-// Auto chooses type.
-// You can also select a specific type, for example bgfx::RendererType::Vulkan
-bgfx_init.type = bgfx::RendererType::Count;
+bgfx_init.type = bgfx::RendererType::OpenGL;
 // Native handle
 bgfx_init.platformData.nwh =
     (void*) glfwGetX11Window(window);
@@ -56,6 +54,8 @@ bgfx::setViewClear(
     1.0f,
     0);
 ```
+
+**Note: here, BGFX is initialized with OpenGL as its backend. This is for the sake of simplicity (click [here](#shader-compilation) for more details). To have BGFX choose which backend to use, set** `bgfx_init.type` **to** `bgfx::RendererType::Count` **.**
 
 If using a different window library like SDL, the process doesn't differ too much.
 - `bgfx_init.platformData.nwh` should be the native handle to the window
@@ -219,6 +219,8 @@ When building BGFX, a tool called `shaderc` is built. It is used to compile the 
     -f fs_helloworld.sc \
     -o fs_helloworld.bin
 ```
+
+**Note: if you used** `bgfx::RendererType::Count` **while initializing BGFX, to ensure cross compatibility, you will have to build your shaders for all platforms supported by BGFX, and select which files to use at runtime depending on the chosen backend.**
 
 ### Loading compiled shaders
 ```cpp
