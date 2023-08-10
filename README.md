@@ -7,6 +7,7 @@ A quick guide on how to do common tasks with the [BGFX](https://github.com/bkara
 ```cpp
 // Change X11 to WIN32 for Windows and COCOA for MacOS
 #define GLFW_EXPOSE_NATIVE_X11
+#include <GLFW/glfw3native.h>
 
 ...
 int width = 640;
