@@ -219,7 +219,6 @@ bgfx::ProgramHandle program = bgfx::createProgram(
 ```cpp
 // Assuming GLFW is in use
 while(!glfwWindowShouldClose(window)) {
-
     bgfx::touch(0);
 
     bgfx::setVertexBuffer(0, vbh);
@@ -260,7 +259,7 @@ uniform vec4 u_params1;
 #define u_brightness u_params.x
 
 void main() {
-    gl_FragColor = v_color0;
+    gl_FragColor = v_color0 * u_brightness;
 }
 ```
 
@@ -289,4 +288,137 @@ bgfx::setUniform(u_brightness, &u_params1);
 
 // Set vertex/index buffers
 ...
+```
+
+## How do I use textures?
+
+### Vertex Shader
+
+```
+$input a_position, a_texcoord0
+$ouput v_texcoord0
+
+void main() {
+    gl_Position = vec4(a_position, 1.0);
+    v_texcoord0 = a_texcoord0;
+}
+```
+
+### Fragment Shader
+
+```
+$input v_texcoord0
+
+SAMPLER2D(s_tex, 0);
+
+void main() {
+    gl_FragColor = texture2D(v_texcoord0, s_tex);
+}
+```
+
+### `varying.def.sc` file
+```
+vec2 v_texcoord0 : TEXCOORD0;
+
+vec3 a_position : POSITION;
+vec2 a_texcoord0 : TEXCOORD0;
+```
+
+### Data
+
+```cpp
+const float vertices[] = {
+    -0.5f, -0.5f, 0.0f, 0.0f, 0.0f,
+    0.5f, -0.5f, 0.0f, 1.0f, 0.0f,
+    0.5f, 0.5f, 0.0f, 1.0f, 1.0f,
+    -0.5f, 0.0f, 0.0f, 0.0f, 1.0f,
+};
+
+const unsigned int indices[] = {
+    0, 1, 2,
+    2, 3, 0
+};
+```
+
+### Vertex Layout
+
+```cpp
+bgfx::VertexLayout vertex_layout;
+vertex_layout.begin()
+    .add(
+        bgfx::Attrib::Position, // Role
+        3, // Size
+        bgfx::AttribType::Float) // Type
+    .add(
+        bgfx::Attrib::TexCoord0,
+        2,
+        bgfx::AttribType::Float)
+    .end();
+```
+
+### Loading a PNG image with [STB Image](https://github.com/nothings/stb/blob/master/stb_image.h)
+
+```cpp
+#include <tuple>
+#include <glm/glm.hpp>
+#include <stb/stb_image.h>
+...
+
+std::tuple<glm::ivec2, bgfx::TextureHandle> load_texture(std::string path) {
+    glm::ivec2 size;
+    int channels;
+    
+    stbi_set_flip_vertically_on_load(true);
+
+    stbi_uc *data = stbi_load(path.c_str(), &size.x, &size.y, &channels, 4);
+
+    auto res =
+	bgfx::createTexture2D(
+	    size.x, size.y,
+	    false, 1,
+	    bgfx::TextureFormat::RGBA8,
+	    BGFX_SAMPLER_U_CLAMP
+	    | BGFX_SAMPLER_V_CLAMP
+	    | BGFX_SAMPLER_MIN_POINT
+	    | BGFX_SAMPLER_MAG_POINT,
+	    bgfx::copy(data, size.x * size.y * channels));
+
+    if(!bgfx::isValid(res)) {
+	    std::cerr << "Failed to load texture " << path << std::endl;
+	    std::exit(-1);
+    }
+
+    stbi_image_free(data);
+
+    return std::tuple<glm::ivec2, bgfx::TextureHandle>(size, res);
+}
+```
+
+### Creating the uniform
+
+```cpp
+...
+bgfx::UniformHandle s_tex = bgfx::createUniform(
+    "s_tex", bgfx::UniformType::Sampler);
+...
+// Create program, etc
+
+std::tuple<glm::ivec2, bgfx::TextureHandle> tuple =
+    load_texture("your_texture.png");
+
+glm::ivec2 texture_size = std::get<0>(tuple);
+bgfx::TextureHandle texture = std::get<1>(tuple);
+```
+
+### Rendering
+
+```cpp
+...
+while(!glfwWindowShouldClose(window)) {
+    ...
+    bgfx::setTexture(0, s_tex, texture); // Sets the uniform
+
+    // Set buffers, submit
+    ...
+}
 ```
