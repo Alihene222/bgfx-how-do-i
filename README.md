@@ -1,5 +1,7 @@
 # BGFX how-do-I
 
+A quick guide on how to do common tasks with the [BGFX](https://github.com/bkaradzic/bgfx) rendering library
+
 ## How do I initialize BGFX with GLFW?
 
 ```cpp
