@@ -530,6 +530,8 @@ To set these values:
 - `bgfx::setTransform` for the model matrix
 - `bgfx::setViewTransform` for the view and projection matrices
 
+A full list of predefined uniforms can be found [here](https://bkaradzic.github.io/bgfx/tools.html#predefined-uniforms)
+
 ### Vertex Shader
 
 ```
