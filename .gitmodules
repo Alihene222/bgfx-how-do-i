@@ -1,12 +1,4 @@
-[submodule "bgfx"]
-	path = lib/bgfx
-	url = https://github.com/bkaradzic/bgfx
-	branch = master
-[submodule "bx"]
-	path = lib/bx
-	url = https://github.com/bkaradzic/bx
-	branch = master
-[submodule "bimg"]
-	path = lib/bimg
-	url = https://github.com/bkaradzic/bimg
+[submodule "glfw"]
+	path = lib/glfw
+	url = https://github.com/glfw/glfw
 	branch = master
